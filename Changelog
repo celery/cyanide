@@ -8,7 +8,7 @@
 
 1.0.0
 =====
-:release-date: TBA
-:release-by:
+:release-date: 2106-04-26 06:17:00 P.M PST
+:release-by: Ask Solem
 
-- Initial release
+- Initial release assembled from ``celery/funtests/stress/``

@@ -22,7 +22,8 @@ globals().update(conf.build_config(
     # path_additions=[os.path.join(os.pardir, 'testproj')],
     apicheck_package='cyanide',
      apicheck_ignore_modules=[
-       'cyanide.bin',
        'cyanide.__main__',
+       'cyanide.bin',
+       'cyanide.suites',
      ],
 ))

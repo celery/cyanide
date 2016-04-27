@@ -15,7 +15,8 @@
     cyanide.bin.cyanide
     cyanide.bin.vagrant
     cyanide.vagrant
+    cyanide.templates
     cyanide.data
     cyanide.fbi
     cyanide.suite
-    cyanide.templates
+    cyanide.suites.default
