@@ -255,7 +255,7 @@ To open an SSH session with the virtual machine after starting
 with ``celery vagrant up`` do:
 ::
 
-    $ celery vagrant ssh
+    $ ssh $(celery vagrant sshargs)
 
 Stopping
 --------

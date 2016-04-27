@@ -22,7 +22,7 @@ class vagrant(Command):
         self.commands = OrderedDict([
             ('up', self.up),
             ('status', self.status),
-            ('ssh', self.ssh),
+            ('sshargs', self.sshargs),
             ('destroy', self.destroy),
             ('suspend', self.suspend),
             ('resume', self.resume),
@@ -81,8 +81,14 @@ class vagrant(Command):
     def status(self, name, **kwargs):
         print(self.vagrant.status(vm_name=name), file=self.stdout)
 
-    def ssh(self, name, **kwargs):
-        self.vagrant.ssh(vm_name=name)
+    def sshargs(self, name, **kwargs):
+        config = self.vagrant.conf(vm_name=name)
+        print('{0}@{1} -p {2} -i {3}'.format(
+            config['User'],
+            config['HostName'],
+            config['Port'],
+            config['IdentityFile'],
+        ), file=self.stdout)
 
     def destroy(self, name, **kwargs):
         self.vagrant.destroy(vm_name=name)

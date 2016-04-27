@@ -267,11 +267,11 @@ SSH
 ---
 
 To open an SSH session with the virtual machine after starting
-with ``celery vagrant up`` do:
+with :command:`celery vagrant up` do:
 
 .. code-block:: console
 
-    $ celery vagrant ssh
+    $ ssh $(celery vagrant sshargs)
 
 Stopping
 --------

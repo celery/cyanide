@@ -175,10 +175,8 @@ install_celery () {
 }
 
 install_cyanide () {
-    echo github_clone "'{CELERY_GITHUB_USER}'" "'cyanide'"
+    echo github_clone "'${CELERY_GITHUB_USER}'" "'cyanide'"
     github_clone "${CELERY_GITHUB_USER}" cyanide "${CYANIDE_DIR}"
-    mv cyanide "${CYANIDE_DIR}"
-    chown "${CELERY_USER}" "${CYANIDE_DIR}"
 }
 
 # --- MAIN

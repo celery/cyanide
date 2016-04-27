@@ -17,6 +17,3 @@ class Vagrant(vagrant.Vagrant):
             quiet_stdout=quiet_stdout,
             quiet_stderr=quiet_stderr,
             *args, **kwargs)
-
-    def ssh(self, vm_name=None):
-        return self._run_vagrant_command(['ssh', vm_name])
