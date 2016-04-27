@@ -20,3 +20,4 @@
     cyanide.fbi
     cyanide.suite
     cyanide.suites.default
+    cyanide.compat

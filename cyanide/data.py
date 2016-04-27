@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
-from celery.five import python_2_unicode_compatible
+from .compat import bytes_if_py2
 
 try:
     import simplejson as json
@@ -52,7 +52,6 @@ def jsonable(cls):
 
 
 @jsonable
-@python_2_unicode_compatible
 class Data(object):
 
     def __init__(self, label, data):
@@ -60,9 +59,9 @@ class Data(object):
         self.data = data
 
     def __str__(self):
-        return '<Data: {0} ({1})>'.format(
+        return bytes_if_py2('<Data: {0} ({1})>'.format(
             self.label, humanbytes(len(self.data)),
-        )
+        ))
 
     def __repr__(self):
         return str(self)
