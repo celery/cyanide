@@ -12,10 +12,12 @@ class cyanide(Command):
         except KeyboardInterrupt:
             print('interrupted by user: exiting...')
 
-    def run_suite(self, names, suite, block_timeout=None, **options):
+    def run_suite(self, names, suite,
+                  block_timeout=None, no_color=False, **options):
         return symbol_by_name(suite)(
             self.app,
             block_timeout=block_timeout,
+            no_color=no_color,
         ).run(names, **options)
 
     def get_options(self):

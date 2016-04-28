@@ -6,7 +6,7 @@ from time import sleep
 
 from celery import chain, group, uuid
 
-from cyanide.app import (
+from cyanide.tasks import (
     add, any_, collect_ids, exiting, ids, kill, sleeping,
     sleeping_ignore_limits, any_returning, print_unicode,
 )

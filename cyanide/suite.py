@@ -13,13 +13,16 @@ from itertools import count
 
 from celery.exceptions import TimeoutError
 from celery.five import items, monotonic, range, values
+from celery.utils import timeutils
+from celery.utils import isatty
 from celery.utils.debug import blockdetection
 from celery.utils.imports import qualname
 from celery.utils.text import pluralize, truncate
-from celery.utils.timeutils import humanize_seconds
+from celery.utils.term import colored
+from kombu.utils import retry_over_time
 
-from .app import marker, _marker
 from .fbi import FBI
+from .tasks import marker, _marker
 
 
 BANNER = """\
@@ -37,8 +40,12 @@ Cyanide v{version} [celery {celery_version}]
 """
 
 F_PROGRESS = """\
-{0.index}: {0.test.__name__}({0.iteration}/{0.total_iterations}) \
+{0.index}: {0.test.__name__:<36}({0.iteration}/{0.total_iterations}) \
 rep#{0.repeats} runtime: {runtime}/{elapsed} \
+"""
+
+E_STILL_WAITING = """\
+Still waiting for {0}. Trying again {when}: {exc!r}\
 """
 
 Progress = namedtuple('Progress', (
@@ -58,9 +65,17 @@ class StopSuite(Exception):
     pass
 
 
+def humanize_seconds(secs, prefix='', sep='', now='now', **kwargs):
+    s = timeutils.humanize_seconds(secs, prefix, sep, now, **kwargs)
+    if s == now and secs > 0:
+        return '{prefix}{sep}{0:.2f} seconds'.format(
+            float(secs), prefix=prefix, sep=sep)
+    return s
+
+
 def pstatus(p):
-    runtime = monotonic() - p.runtime
-    elapsed = monotonic() - p.elapsed
+    runtime = format(monotonic() - p.runtime, '.4f')
+    elapsed = format(monotonic() - p.elapsed, '.4f')
     return F_PROGRESS.format(
         p,
         runtime=humanize_seconds(runtime, now=runtime),
@@ -70,8 +85,9 @@ def pstatus(p):
 
 class Speaker(object):
 
-    def __init__(self, gap=5.0):
+    def __init__(self, gap=5.0, file=None):
         self.gap = gap
+        self.file = sys.stdout if file is None else file
         self.last_noise = monotonic() - self.gap * 2
 
     def beep(self):
@@ -81,7 +97,7 @@ class Speaker(object):
             self.last_noise = now
 
     def emit(self):
-        print('\a', file=sys.stderr, end='')
+        print('\a', file=self.file, end='')
 
 
 def testgroup(*funs):
@@ -90,14 +106,30 @@ def testgroup(*funs):
 
 class Suite(object):
 
-    def __init__(self, app, block_timeout=30 * 60):
+    def __init__(self, app,
+                 block_timeout=30 * 60, no_color=False,
+                 stdout=None, stderr=None):
         self.app = app
+        self.stdout = sys.stdout if stdout is None else stdout
+        self.stderr = sys.stderr if stderr is None else stderr
+        if not isatty(self.stdout):
+            no_color = True
+        self.colored = colored(enabled=not no_color)
         self.connerrors = self.app.connection().recoverable_connection_errors
         self.block_timeout = block_timeout
         self.progress = None
-        self.speaker = Speaker()
+        self.speaker = Speaker(file=self.stdout)
         self.fbi = FBI(app)
         self.init_groups()
+
+    def print(self, message, file=None):
+        print(message, file=self.stdout if file is None else file)
+
+    def error(self, message):
+        print(self.colored.red(message), file=self.stderr)
+
+    def warn(self, message):
+        print(self.colored.cyan(message), file=self.stdout)
 
     def init_groups(self):
         acc = defaultdict(list)
@@ -125,22 +157,27 @@ class Suite(object):
         self.fbi.enable(diag)
         tests = self.filtertests(group, names)[offset:numtests or None]
         if list_all:
-            return print(self.testlist(tests))
-        print(self.banner(tests))
-        print('+ Enabling events')
+            return self.print(self.testlist(tests))
+        self.print(self.banner(tests))
+        self.print('+ Enabling events')
         self.app.control.enable_events()
         it = count() if repeat == Inf else range(int(repeat) or 1)
         for i in it:
             marker(
-                'suite start (repetition {0})'.format(i + 1),
+                '{0} (repetition {1})'.format(
+                    self.colored.bold('suite start'), i + 1),
                 '+',
             )
             for j, test in enumerate(tests):
                 self.runtest(test, iterations, j + 1, i + 1)
             marker(
-                'suite end (repetition {0})'.format(i + 1),
+                '{0} (repetition {1})'.format(
+                    self.colored.bold('suite end'), i + 1),
                 '+',
             )
+
+    def assert_equal(self, a, b):
+        return assert_equal(a, b)
 
     def filtertests(self, group, names):
         tests = self.groups[group]
@@ -172,7 +209,10 @@ class Suite(object):
 
     def runtest(self, fun, n=50, index=0, repeats=1):
         n = getattr(fun, '__iterations__', None) or n
-        print('{0}: [[[{1}({2})]]]'.format(repeats, fun.__name__, n))
+        header = '[[[{0}({1})]]]'.format(fun.__name__, n)
+        if repeats > 1:
+            header = '{0} x {1}'.format(header, repeats)
+        self.print(header)
         with blockdetection(self.block_timeout):
             with self.fbi.investigation():
                 runtime = elapsed = monotonic()
@@ -193,21 +233,22 @@ class Suite(object):
                         except StopSuite:
                             raise
                         except Exception as exc:
-                            print('-> {0!r}'.format(exc))
+                            self.error('-> {0!r}'.format(exc))
                             import traceback
-                            print(traceback.format_exc())
-                            print(pstatus(self.progress))
+                            self.error(traceback.format_exc())
+                            self.error(pstatus(self.progress))
                         else:
-                            print(pstatus(self.progress))
+                            self.print(pstatus(self.progress))
                 except Exception:
                     failed = True
                     self.speaker.beep()
                     raise
                 finally:
-                    print('{0} {1} iterations in {2}'.format(
-                        'failed after' if failed else 'completed',
-                        i + 1, humanize_seconds(monotonic() - elapsed),
-                    ))
+                    if n > 1 or failed:
+                        self.print('{0} {1} iterations in {2}'.format(
+                            'failed after' if failed else 'completed',
+                            i + 1, humanize_seconds(monotonic() - elapsed),
+                        ), file=self.stderr if failed else self.stdout)
                     if not failed:
                         self.progress = Progress(
                             fun, i + 1, n, index, repeats, runtime, elapsed, 1,
@@ -215,6 +256,28 @@ class Suite(object):
 
     def missing_results(self, r):
         return [res.id for res in r if res.id not in res.backend._cache]
+
+    def wait_for(self, fun, catch, desc='thing',
+                 args=(), kwargs={}, errback=None,
+                 max_retries=10, interval_start=0.1, interval_step=0.5,
+                 interval_max=5, **options):
+
+        def on_error(exc, intervals, retries):
+            interval = next(intervals)
+            self.warn(E_STILL_WAITING.format(
+                desc, when=humanize_seconds(interval, 'in', ' '), exc=exc,
+            ))
+            if errback:
+                errback(exc, interval, retries)
+            return interval
+
+        return retry_over_time(
+            fun, catch,
+            args=args, kwargs=kwargs,
+            errback=on_error, max_retries=max_retries,
+            interval_start=interval_start, interval_step=interval_step,
+            **options
+        )
 
     def join(self, r, propagate=False, max_retries=10, **kwargs):
         if self.no_join:
