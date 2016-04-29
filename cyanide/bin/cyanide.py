@@ -3,14 +3,23 @@ from __future__ import absolute_import, print_function, unicode_literals
 from celery.bin.base import Command, Option
 from celery.utils.imports import symbol_by_name
 
+from cyanide.app import app as cyanide_app
+
 
 class cyanide(Command):
+
+    def __init__(self, app=None, *args, **kwargs):
+        if app is None or app.main == 'default':
+            app = cyanide_app
+        app.set_current()
+        app.set_default()
+        super(cyanide, self).__init__(app, *args, **kwargs)
 
     def run(self, *names, **options):
         try:
             return self.run_suite(names, **options)
         except KeyboardInterrupt:
-            print('interrupted by user: exiting...')
+            print('###interrupted by user: exiting...', file=self.stdout)
 
     def run_suite(self, names, suite,
                   block_timeout=None, no_color=False, **options):
@@ -40,13 +49,13 @@ class cyanide(Command):
             Option('-J', '--no-join', default=False, action='store_true',
                    help='Do not wait for task results'),
             Option('-S', '--suite',
-                   default='cyanide.suites.default:Default',
+                   default=self.app.cyanide_suite,
                    help='Specify test suite to execute (path to class)'),
         )
 
 
 def main(argv=None):
-    return cyanide(app='cyanide.app:app').execute_from_commandline(argv=argv)
+    return cyanide().execute_from_commandline(argv=argv)
 
 
 if __name__ == '__main__':

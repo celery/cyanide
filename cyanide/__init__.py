@@ -9,8 +9,8 @@ from __future__ import absolute_import, unicode_literals
 from collections import namedtuple
 
 # data must be imported first to install json serializer
-from . import data    # noqa
-from .app import app  # noqa
+from . import data                  # noqa
+from .app import app as celery_app  # noqa
 
 version_info_t = namedtuple(
     'version_info_t', ('major', 'minor', 'micro', 'releaselevel', 'serial'),

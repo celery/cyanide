@@ -11,6 +11,7 @@ IS_CELERY_4 = celery.VERSION[0] >= 4
 
 
 class App(celery.Celery):
+    cyanide_suite = 'cyanide.suites.default:Default'
     template_selected = False
 
     def __init__(self, *args, **kwargs):

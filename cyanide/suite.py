@@ -7,9 +7,9 @@ import inspect
 import platform
 import socket
 import sys
+import traceback
 
 from collections import OrderedDict, defaultdict, namedtuple
-from functools import partial
 from itertools import count, cycle
 
 from celery.exceptions import TimeoutError
@@ -144,6 +144,12 @@ class Suite(object):
         self.fbi = FBI(app)
         self.init_groups()
 
+    def setup(self):
+        pass
+
+    def teardown(self):
+        pass
+
     def print(self, message, file=None):
         print(message, file=self.stdout if file is None else file)
 
@@ -245,30 +251,14 @@ class Suite(object):
                 )
                 _marker.delay(pstatus(self.progress))
 
-                def on_error(exc, status):
-                    self.error('-> {0!r}'.format(exc))
-                    import traceback
-                    self.error(traceback.format_exc())
-                    self.error(pstatus(
-                    self.progress, self.colored.red(status)))
-
                 try:
                     for i in range(n):
                         runtime = monotonic()
                         self.progress = Progress(
                             fun, i + 1, n, index, repeats, runtime, elapsed, 0,
                         )
-                        try:
-                            fun()
-                        except StopSuite:
-                            raise
-                        except AssertionError as exc:
-                            on_error(exc, 'FAILED')
-                        except Exception as exc:
-                            on_error(exc, 'ERROR')
-                        else:
-                            self.print(pstatus(self.progress,
-                                    self.colored.green('OK')))
+                        self.execute_test(fun)
+
                 except Exception:
                     failed = True
                     self.speaker.beep()
@@ -283,6 +273,27 @@ class Suite(object):
                         self.progress = Progress(
                             fun, i + 1, n, index, repeats, runtime, elapsed, 1,
                         )
+
+    def execute_test(self, fun):
+        self.setup()
+        try:
+            try:
+                fun()
+            except StopSuite:
+                raise
+            except AssertionError as exc:
+                self.on_test_error(exc, 'FAILED')
+            except Exception as exc:
+                self.on_test_error(exc, 'ERROR')
+            else:
+                self.print(pstatus(self.progress, self.colored.green('OK')))
+        finally:
+            self.teardown()
+
+    def on_test_error(self, exc, status):
+        self.error('-> {0!r}'.format(exc))
+        self.error(traceback.format_exc())
+        self.error(pstatus(self.progress, self.colored.red(status)))
 
     def missing_results(self, r):
         return [res.id for res in r if res.id not in res.backend._cache]
@@ -326,7 +337,7 @@ class Suite(object):
                 interval_max=interval_max, emit_warning=emit_warning,
                 errback=meter.emit,
             )
-        except catch as exc:
+        except catch:
             pass
         else:
             raise AssertionError('Should not have happened: {0}'.format(desc))
