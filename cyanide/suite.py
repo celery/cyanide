@@ -9,7 +9,8 @@ import socket
 import sys
 
 from collections import OrderedDict, defaultdict, namedtuple
-from itertools import count
+from functools import partial
+from itertools import count, cycle
 
 from celery.exceptions import TimeoutError
 from celery.five import items, monotonic, range, values
@@ -40,8 +41,9 @@ Cyanide v{version} [celery {celery_version}]
 """
 
 F_PROGRESS = """\
-{0.index}: {0.test.__name__:<36}({0.iteration}/{0.total_iterations}) \
-rep#{0.repeats} runtime: {runtime}/{elapsed} \
+{0.index:2d}: {0.test.__name__:<36} {status} \
+({0.iteration}/{0.total_iterations}) rep#{0.repeats} runtime: \
+{runtime}/{elapsed}\
 """
 
 E_STILL_WAITING = """\
@@ -73,11 +75,12 @@ def humanize_seconds(secs, prefix='', sep='', now='now', **kwargs):
     return s
 
 
-def pstatus(p):
+def pstatus(p, status=None):
     runtime = format(monotonic() - p.runtime, '.4f')
     elapsed = format(monotonic() - p.elapsed, '.4f')
     return F_PROGRESS.format(
         p,
+        status=status or '',
         runtime=humanize_seconds(runtime, now=runtime),
         elapsed=humanize_seconds(elapsed, now=elapsed),
     )
@@ -98,6 +101,25 @@ class Speaker(object):
 
     def emit(self):
         print('\a', file=self.file, end='')
+
+
+class Meter(object):
+
+    def __init__(self, s='.', end='', cursor='/-\\', file=None):
+        self.s = s
+        self.end = end
+        self.file = sys.stdout if file is None else file
+        self.counter = 0
+        self.cursor = cycle(cursor)
+
+    def emit(self, *args, **kwargs):
+        self.counter += len(self.s)
+        print(self.s * (self.counter - 1) + next(self.cursor),
+              end='\r', file=self.file)
+        self.file.flush()
+
+    def revert(self):
+        self.counter = 0
 
 
 def testgroup(*funs):
@@ -159,7 +181,7 @@ class Suite(object):
         if list_all:
             return self.print(self.testlist(tests))
         self.print(self.banner(tests))
-        self.print('+ Enabling events')
+        self.print('+enable worker task events...')
         self.app.control.enable_events()
         it = count() if repeat == Inf else range(int(repeat) or 1)
         for i in it:
@@ -211,7 +233,7 @@ class Suite(object):
         n = getattr(fun, '__iterations__', None) or n
         header = '[[[{0}({1})]]]'.format(fun.__name__, n)
         if repeats > 1:
-            header = '{0} x {1}'.format(header, repeats)
+            header = '{0} #{1}'.format(header, repeats)
         self.print(header)
         with blockdetection(self.block_timeout):
             with self.fbi.investigation():
@@ -222,6 +244,14 @@ class Suite(object):
                     fun, i, n, index, repeats, elapsed, runtime, 0,
                 )
                 _marker.delay(pstatus(self.progress))
+
+                def on_error(exc, status):
+                    self.error('-> {0!r}'.format(exc))
+                    import traceback
+                    self.error(traceback.format_exc())
+                    self.error(pstatus(
+                    self.progress, self.colored.red(status)))
+
                 try:
                     for i in range(n):
                         runtime = monotonic()
@@ -232,13 +262,13 @@ class Suite(object):
                             fun()
                         except StopSuite:
                             raise
+                        except AssertionError as exc:
+                            on_error(exc, 'FAILED')
                         except Exception as exc:
-                            self.error('-> {0!r}'.format(exc))
-                            import traceback
-                            self.error(traceback.format_exc())
-                            self.error(pstatus(self.progress))
+                            on_error(exc, 'ERROR')
                         else:
-                            self.print(pstatus(self.progress))
+                            self.print(pstatus(self.progress,
+                                    self.colored.green('OK')))
                 except Exception:
                     failed = True
                     self.speaker.beep()
@@ -257,27 +287,54 @@ class Suite(object):
     def missing_results(self, r):
         return [res.id for res in r if res.id not in res.backend._cache]
 
-    def wait_for(self, fun, catch, desc='thing',
-                 args=(), kwargs={}, errback=None,
+    def wait_for(self, fun, catch,
+                 desc='thing', args=(), kwargs={}, errback=None,
                  max_retries=10, interval_start=0.1, interval_step=0.5,
-                 interval_max=5, **options):
+                 interval_max=5.0, emit_warning=False, **options):
+        meter = Meter(file=self.stdout)
 
         def on_error(exc, intervals, retries):
             interval = next(intervals)
-            self.warn(E_STILL_WAITING.format(
-                desc, when=humanize_seconds(interval, 'in', ' '), exc=exc,
-            ))
+            if emit_warning:
+                self.warn(E_STILL_WAITING.format(
+                    desc, when=humanize_seconds(interval, 'in', ' '), exc=exc,
+                ))
+            else:
+                meter.emit()
             if errback:
                 errback(exc, interval, retries)
             return interval
 
-        return retry_over_time(
+        return self.retry_over_time(
             fun, catch,
             args=args, kwargs=kwargs,
             errback=on_error, max_retries=max_retries,
             interval_start=interval_start, interval_step=interval_step,
             **options
         )
+
+    def ensure_not_for_a_while(self, fun, catch,
+                               desc='thing', max_retries=20,
+                               interval_start=0.1, interval_step=0.02,
+                               interval_max=1.0, emit_warning=False,
+                               **options):
+        meter = Meter(file=self.stdout)
+        try:
+            return self.wait_for(
+                fun, catch, desc=desc, max_retries=max_retries,
+                interval_start=interval_start, interval_step=interval_step,
+                interval_max=interval_max, emit_warning=emit_warning,
+                errback=meter.emit,
+            )
+        except catch as exc:
+            pass
+        else:
+            raise AssertionError('Should not have happened: {0}'.format(desc))
+        finally:
+            meter.revert()
+
+    def retry_over_time(self, *args, **kwargs):
+        return retry_over_time(*args, **kwargs)
 
     def join(self, r, propagate=False, max_retries=10, **kwargs):
         if self.no_join:
