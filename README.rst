@@ -4,7 +4,7 @@
 
 |build-status| |coverage|
 
-:Version: 1.0.0
+:Version: 1.1.0
 :Web: http://cyanide.readthedocs.org/
 :Download: http://pypi.python.org/pypi/cyanide/
 :Source: http://github.com/celery/cyanide/
@@ -266,6 +266,7 @@ To shutdown the virtual machine run the command:
     $ celery vagrant halt
 
 To destroy the instance run the command:
+
 ::
 
     $ celery vagrant destroy
