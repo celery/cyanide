@@ -5,7 +5,7 @@ include MANIFEST.in
 include setup.cfg
 include setup.py
 recursive-include docs *
-recursive-include extra/*
+recursive-include extra *.cmd *.ps1
 recursive-include examples *
 recursive-include requirements *.txt *.rst
 recursive-include cyanide/vagrant Vagrantfile *.config *.sh

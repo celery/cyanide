@@ -4,11 +4,24 @@
  Change history
 ================
 
+.. _version-1.1.0:
+
+1.1.0
+=====
+:release-date: 2016-05-12 03:07:00 P.M PDT
+:release-by: Ask Solem
+
+- Moved tasks from ``cyanide.app`` into :mod:`cyanide.tasks`.
+
+- Adds Suite.wait_for with progress bar.
+
+- More useful harness output.
+
 .. _version-1.0.1
 
 1.0.1
 =====
-:release-date: 2106-04-26 06:42:00 P.M PST
+:release-date: 2106-04-26 06:42:00 P.M PDT
 :release-by: Ask Solem
 
 - Now compatible with Celery 3.1
