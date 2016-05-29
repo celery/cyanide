@@ -10,7 +10,7 @@ globals().update(conf.build_config(
     project='Cyanide',
     # version_dev='2.0',
     # version_stable='1.4',
-    canonical_url='http://cyanide.readthedocs.org',
+    canonical_url='https://cyanide.readthedocs.io',
     webdomain='',
     github_project='celery/cyanide',
     copyright='2013-2016',

@@ -5,7 +5,7 @@
 |build-status| |coverage|
 
 :Version: 1.1.0
-:Web: http://cyanide.readthedocs.org/
+:Web: https://cyanide.readthedocs.io/
 :Download: http://pypi.python.org/pypi/cyanide/
 :Source: http://github.com/celery/cyanide/
 :Keywords: celery, stress, integration, functional, testing
