@@ -110,6 +110,12 @@ class Default(Suite):
         assert_equal(root_id, expected_root_id)
         assert_equal(parent_id, base_parent)
 
+    @testcase('all', 'green', iterations=5)
+    def task_accepted(self, sleep=1):
+        r1 = sleeping.delay(sleep)
+        sleeping.delay(sleep)
+        self.assert_accepted([r1.id])
+
     @testcase('all', 'green')
     def manyshort(self):
         self.join(group(add.s(i, i) for i in range(1000))(),

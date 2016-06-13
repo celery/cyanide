@@ -10,6 +10,7 @@ import sys
 import traceback
 
 from collections import OrderedDict, defaultdict, namedtuple
+from functools import partial
 from itertools import count, cycle
 
 from celery.exceptions import TimeoutError
@@ -64,6 +65,10 @@ def assert_equal(a, b):
 
 
 class StopSuite(Exception):
+    pass
+
+
+class Sentinel(Exception):
     pass
 
 
@@ -376,6 +381,57 @@ class Suite(object):
     def dump_progress(self):
         return pstatus(self.progress) if self.progress else 'No test running'
 
+    def inspect(self, timeout=1):
+        return self.app.control.inspect(timeout=timeout)
+
+    def query_tasks(self, ids, timeout=0.5):
+        for reply in items(self.inspect(timeout).query_task(ids) or []):
+            yield reply
+
+    def query_task_states(self, ids, timeout=0.5):
+        states = defaultdict(set)
+        for hostname, reply in self.query_tasks(ids, timeout=timeout):
+            for task_id, (state, _) in items(reply):
+                states[state].add(task_id)
+        return states
+
+    def assert_accepted(self, ids, interval=0.5,
+                        desc='waiting for tasks to be accepted', **policy):
+        return self.assert_task_worker_state(
+            self.is_accepted, ids, interval=interval, desc=desc, **policy
+        )
+
+    def assert_received(self, ids, interval=0.5,
+                        desc='waiting for tasks to be received', **policy):
+        return self.assert_task_worker_state(
+            self.is_accepted, ids, interval=interval, desc=desc, **policy
+        )
+
+    def assert_task_worker_state(self, fun, ids, interval=0.5, **policy):
+        return self.wait_for(
+            partial(self.true_or_raise, fun, ids, timeout=interval),
+            (Sentinel,), **policy
+        )
+
+    def is_received(self, ids, **kwargs):
+        return self._ids_matches_state(
+            ['reserved', 'active', 'ready'], ids, **kwargs)
+
+    def is_accepted(self, ids, **kwargs):
+        return self._ids_matches_state(['active', 'ready'], ids, **kwargs)
+
+    def _ids_matches_state(self, expected_states, ids, timeout=0.5):
+        states = self.query_task_states(ids, timeout=timeout)
+        return all(
+            any(t in s for s in [states[k] for k in expected_states])
+            for t in ids
+        )
+
+    def true_or_raise(self, fun, *args, **kwargs):
+        res = fun(*args, **kwargs)
+        if not res:
+            raise Sentinel()
+        return res
 
 _creation_counter = count(0)
 
