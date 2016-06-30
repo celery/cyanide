@@ -1,4 +1,4 @@
-:Version: 1.1.0
+:Version: 1.2.0
 :Web: http://cyanide.readthedocs.org/
 :Download: http://pypi.python.org/pypi/cyanide/
 :Source: http://github.com/celery/cyanide/

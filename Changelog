@@ -4,6 +4,19 @@
  Change history
 ================
 
+.. _version-1.2.0:
+
+1.2.0
+=====
+:release-date: 2016-06-30 11:27:00 P.M PDT
+
+- ``celery vagrant``: Updates to new RabbitMQ APT key URL.
+
+- New tasks: ``errback`` and ``old_errback`` for testing new canvas error
+  callbacks.
+
+- Integrates tests from old Celery functional test suite.
+
 .. _version-1.1.0:
 
 1.1.0
