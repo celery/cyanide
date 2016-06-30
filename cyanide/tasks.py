@@ -188,6 +188,18 @@ def raising(exc=KeyError()):
 
 
 @app.task
+def errback(request, exc, traceback):
+    print('Task id {0!r} raised exception: {1!r}\n{2}'.format(
+        request.id, exc, traceback,
+    ))
+
+
+@app.task
+def old_errback(task_id):
+    print('Task id %r raised exception' % (task_id,))
+
+
+@app.task
 def logs(msg, p=False):
     """Log a message to the worker logs.
 
