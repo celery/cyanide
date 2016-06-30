@@ -16,7 +16,6 @@ from itertools import count, cycle
 from celery.exceptions import TimeoutError
 from celery.five import items, monotonic, range, values
 from celery.utils import timeutils
-from celery.utils import isatty
 from celery.utils.debug import blockdetection
 from celery.utils.imports import qualname
 from celery.utils.text import pluralize, truncate
@@ -26,6 +25,10 @@ from kombu.utils import retry_over_time
 from .fbi import FBI
 from .tasks import marker, _marker
 
+try:
+    from celery.platforms import isatty
+except ImportError:
+    from celery.utils import isatty
 
 BANNER = """\
 Cyanide v{version} [celery {celery_version}]
