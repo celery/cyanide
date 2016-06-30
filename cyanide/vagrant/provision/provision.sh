@@ -9,7 +9,7 @@ RABBITMQCTL="rabbitmqctl"
 
 RABBITMQ_APT_URL="http://www.rabbitmq.com/debian/"
 RABBITMQ_APT_VER="testing main"
-RABBITMQ_APT_KEY="https://www.rabbitmq.com/rabbitmq-signing-key-public.asc"
+RABBITMQ_APT_KEY="https://www.rabbitmq.com/rabbitmq-release-signing-key.asc"
 RABBITMQ_DEB="rabbitmq-server"
 
 RABBITMQ_USERNAME="testing"
