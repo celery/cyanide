@@ -1,4 +1,5 @@
 PROJ=cyanide
+PGPIDENT="Celery Security Team"
 PYTHON=python
 GIT=git
 TOX=tox
@@ -27,6 +28,7 @@ help:
 	@echo "  test               - Run unittests using current python."
 	@echo "  lint ------------  - Check codebase for problems."
 	@echo "    apicheck         - Check API reference coverage."
+	@echo "    configcheck      - Check configuration reference coverage."
 	@echo "    readmecheck      - Check README.rst encoding."
 	@echo "    contribcheck     - Check CONTRIBUTING.rst encoding"
 	@echo "    flakes --------  - Check code for syntax and style errors."
@@ -40,10 +42,26 @@ help:
 	@echo "    clean-pyc        - Remove .pyc/__pycache__ files"
 	@echo "    clean-docs       - Remove documentation build artifacts."
 	@echo "    clean-build      - Remove setup artifacts."
+	@echo "bump                 - Bump patch version number."
+	@echo "bump-minor           - Bump minor version number."
+	@echo "bump-major           - Bump major version number."
+	@echo "release              - Make PyPI release."
 
 clean: clean-docs clean-pyc clean-build
 
 clean-dist: clean clean-git-force
+
+bump:
+	bumpversion patch
+
+bump-minor:
+	bumpversion minor
+
+bump-major:
+	bumpversion major
+
+release:
+	python setup.py register sdist bdist_wheel upload --sign --identity="$(PGPIDENT)"
 
 Documentation:
 	(cd "$(SPHINX_DIR)"; $(MAKE) html)
@@ -54,10 +72,13 @@ docs: Documentation
 clean-docs:
 	-rm -rf "$(SPHINX_BUILDDIR)"
 
-lint: flakecheck apicheck readmecheck
+lint: flakecheck apicheck configcheck readmecheck
 
 apicheck:
 	(cd "$(SPHINX_DIR)"; $(MAKE) apicheck)
+
+configcheck:
+	(cd "$(SPHINX_DIR)"; $(MAKE) configcheck)
 
 flakecheck:
 	$(FLAKE8) "$(PROJ)"
