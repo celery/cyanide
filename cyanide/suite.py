@@ -15,7 +15,6 @@ from itertools import count, cycle
 
 from celery.exceptions import TimeoutError
 from celery.five import items, monotonic, range, values
-from celery.utils import timeutils
 from celery.utils.debug import blockdetection
 from celery.utils.imports import qualname
 from celery.utils.text import pluralize, truncate
@@ -29,6 +28,11 @@ try:
     from celery.platforms import isatty
 except ImportError:
     from celery.utils import isatty
+
+try:
+    from celery.utils.time import humanize_seconds
+except ImportError:
+    from celery.utils.timeutils import humanize_seconds
 
 BANNER = """\
 Cyanide v{version} [celery {celery_version}]
