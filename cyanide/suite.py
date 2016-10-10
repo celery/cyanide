@@ -30,9 +30,9 @@ except ImportError:
     from celery.utils import isatty
 
 try:
-    from celery.utils.time import humanize_seconds
+    import celery.utils.time as timeutils
 except ImportError:
-    from celery.utils.timeutils import humanize_seconds
+    from celery.utils import timeutils
 
 BANNER = """\
 Cyanide v{version} [celery {celery_version}]
