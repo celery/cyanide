@@ -114,6 +114,7 @@ setup(
     name=NAME,
     version=meta['version'],
     description=meta['doc'],
+    keywords='celery integration test suite',
     author=meta['author'],
     author_email=meta['contact'],
     url=meta['homepage'],
