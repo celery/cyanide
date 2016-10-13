@@ -73,7 +73,8 @@ class default(object):
     CELERY_MAX_CACHED_RESULTS = 100
     CELERY_DEFAULT_QUEUE = CYANIDE_QUEUE
     CELERY_IMPORTS = ['cyanide.tasks']
-    CELERY_TASK_QUEUES = [
+    CELERY_TRACK_STARTED = True
+    CELERY_QUEUES = [
         Queue(CYANIDE_QUEUE,
               durable=not CYANIDE_TRANS,
               no_ack=CYANIDE_TRANS),
