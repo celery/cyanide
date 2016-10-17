@@ -39,7 +39,7 @@ class cyanide(Command):
                    help='Start at custom offset'),
             Option('--block-timeout', type='int', default=30 * 60),
             Option('-l', '--list', action='store_true', dest='list_all',
-                   help='List all tests'),
+                   default=False, help='List all tests'),
             Option('-r', '--repeat', type='float', default=0,
                    help='Number of times to repeat the test suite'),
             Option('-g', '--group', default='all',

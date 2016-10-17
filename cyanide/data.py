@@ -34,6 +34,12 @@ def decode_hook(d):
 def install_json():
     json._default_encoder = JSONEncoder()
     json._default_decoder.object_hook = decode_hook
+    try:
+        from kombu.utils import json as kombujson
+    except ImportError:
+        pass
+    else:
+        kombujson._default_encoder = JSONEncoder
 install_json()  # ugh, ugly but it's a test suite after all
 
 

@@ -26,7 +26,7 @@ class Default(Suite):
         self.join(
             group(sleeping.s(1).set(time_limit=0.1)
                   for _ in range(100))(),
-            timeout=10, propagate=True,
+            timeout=10, propagate=False,
         )
 
     @testcase('all')
