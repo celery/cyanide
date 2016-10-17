@@ -19,7 +19,7 @@ class App(celery.Celery):
         super(App, self).__init__(*args, **kwargs)
         self.user_options['preload'].add(
             Option(
-                '-Z', '--template', default='default',
+                '-Z', '--template', default='default', type=str,
                 help='Configuration template to use: {0}'.format(
                     template_names(),
                 ),
@@ -35,8 +35,8 @@ class App(celery.Celery):
     def use_template(self, name='default'):
         if self.template_selected:
             raise RuntimeError('App already configured')
-        use_template(self, name)
         self.template_selected = True
+        use_template(self, name)
 
     def _maybe_use_default_template(self, **kwargs):
         if not self.template_selected:

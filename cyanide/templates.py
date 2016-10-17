@@ -29,6 +29,9 @@ def template(name=None):
 if IS_CELERY_4:
 
     def use_template(app, template='default'):
+        if isinstance(template, list) and len(template) == 1:
+            # weird argparse thing
+            template = template[0]
         template = template.split(',')
 
         # mixin the rest of the templates when the config is needed
