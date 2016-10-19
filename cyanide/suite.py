@@ -134,12 +134,25 @@ class Meter(object):
         self.counter = 0
 
 
+class DummyMeter(object):
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def emit(self, *args, **kwargs):
+        pass
+
+    def revert(self):
+        pass
+
+
 def testgroup(*funs):
     return OrderedDict((fun.__name__, fun) for fun in funs)
 
 
 class ManagerMixin(object):
     TaskPredicate = StopSuite
+    Meter = Meter
 
     def _init_manager(self, app,
                       block_timeout=30 * 60, stdout=None, stderr=None):
@@ -151,6 +164,9 @@ class ManagerMixin(object):
         self.speaker = Speaker(file=self.stdout)
         self.fbi = FBI(app)
 
+    def new_meter(self):
+        return self.Meter(file=self.stdout)
+
     def missing_results(self, r):
         return [res.id for res in r if res.id not in res.backend._cache]
 
@@ -158,7 +174,7 @@ class ManagerMixin(object):
                  desc='thing', args=(), kwargs={}, errback=None,
                  max_retries=10, interval_start=0.1, interval_step=0.5,
                  interval_max=5.0, emit_warning=False, **options):
-        meter = Meter(file=self.stdout)
+        meter = self.new_meter()
 
         def on_error(exc, intervals, retries):
             interval = next(intervals)
@@ -185,7 +201,7 @@ class ManagerMixin(object):
                                interval_start=0.1, interval_step=0.02,
                                interval_max=1.0, emit_warning=False,
                                **options):
-        meter = Meter(file=self.stdout)
+        meter = self.new_meter()
         try:
             return self.wait_for(
                 fun, catch, desc=desc, max_retries=max_retries,
