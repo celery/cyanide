@@ -4,7 +4,7 @@
 
 |build-status| |coverage| |license| |wheel| |pyversion| |pyimp|
 
-:Version: 1.2.0
+:Version: 1.3.0
 :Web: https://cyanide.readthedocs.io/
 :Download: http://pypi.python.org/pypi/cyanide/
 :Source: http://github.com/celery/cyanide/

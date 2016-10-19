@@ -14,7 +14,7 @@ from collections import namedtuple
 from . import data                  # noqa
 from .app import app as celery_app  # noqa
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 __author__ = 'Ask Solem'
 __contact__ = 'ask@celeryproject.org'
 __homepage__ = 'https://github.com/celery/cyanide'
