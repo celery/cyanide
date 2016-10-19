@@ -4,14 +4,14 @@ import random
 
 from time import sleep
 
-from celery import chain, group, uuid
+from celery import group
 
 from cyanide.tasks import (
-    add, any_, collect_ids, exiting, ids, kill, sleeping,
-    sleeping_ignore_limits, any_returning, print_unicode,
+    add, any_, exiting, kill, sleeping,
+    sleeping_ignore_limits, any_returning,
 )
 from cyanide.data import BIG, SMALL
-from cyanide.suite import Suite, assert_equal, testcase
+from cyanide.suite import Suite, testcase
 
 
 class Default(Suite):

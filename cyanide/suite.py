@@ -282,7 +282,6 @@ class ManagerMixin(object):
         return res
 
 
-
 class Suite(ManagerMixin):
 
     TaskPredicate = StopSuite
