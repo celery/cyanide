@@ -1,25 +1,54 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
+import datetime
+import decimal
+import uuid
+
 from .compat import bytes_if_py2
 
 try:
     import simplejson as json
-except ImportError:
-    import json  # noqa
+    from simplejson.decoder import JSONDecodeError as _DecodeError
+    _json_extra_kwargs = {'use_decimal': False}
+except ImportError:                 # pragma: no cover
+    import json                     # noqa
+    _json_extra_kwargs = {}           # noqa
 
+    class _DecodeError(Exception):  # noqa
+        pass
+
+
+_encoder_cls = type(json._default_encoder)
 type_registry = {}
 
 
-class JSONEncoder(json.JSONEncoder):
+class JSONEncoder(_encoder_cls):
+    """Kombu custom json encoder."""
 
-    def default(self, obj):
+    def default(self, obj,
+                dates=(datetime.datetime, datetime.date),
+                times=(datetime.time,),
+                textual=(decimal.Decimal, uuid.UUID),
+                isinstance=isinstance,
+                datetime=datetime.datetime):
         try:
             return super(JSONEncoder, self).default(obj)
         except TypeError:
             reducer = getattr(obj, '__to_json__', None)
             if reducer:
                 return reducer()
+            if isinstance(obj, dates):
+                if not isinstance(obj, datetime):
+                    obj = datetime(obj.year, obj.month, obj.day, 0, 0, 0, 0)
+                r = obj.isoformat()
+                if r.endswith("+00:00"):
+                    r = r[:-6] + "Z"
+                return r
+            elif isinstance(obj, times):
+                return obj.isoformat()
+            elif isinstance(obj, textual):
+                return text_t(obj)
             raise
 
 
