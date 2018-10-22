@@ -81,7 +81,7 @@ class Sentinel(Exception):
 
 def humanize_seconds(secs, prefix='', sep='', now='now', **kwargs):
     s = timeutils.humanize_seconds(secs, prefix, sep, now, **kwargs)
-    if s == now and secs > 0:
+    if s == now and float(secs) > 0:
         return '{prefix}{sep}{0:.2f} seconds'.format(
             float(secs), prefix=prefix, sep=sep)
     return s
