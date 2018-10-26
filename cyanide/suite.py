@@ -486,5 +486,6 @@ def _is_descriptor(obj, attr):
     except AttributeError:
         pass
     else:
-        return not inspect.ismethod(cattr) and hasattr(cattr, '__get__')
+        ismethod = inspect.ismethod(cattr) or inspect.isfunction(cattr)
+        return not ismethod and hasattr(cattr, '__get__')
     return False
